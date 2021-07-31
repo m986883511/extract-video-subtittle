@@ -33,7 +33,8 @@ xxxx
 docker run -d -p 6666:6666 m986883511/extract_subtitles
 ```
 
-
+### 本项目缺少文件
+因网速墙的问题，大文件推送不上去，可以参考.gitignore中写的
 
 
 ## 其他

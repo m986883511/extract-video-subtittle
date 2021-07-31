@@ -129,6 +129,15 @@ dmypy.json
 .pyre/
 temp/
 .idea
-ffmpeg/
 *.mp4
-docker/*.tar
+
+
+# 未推送文件
+# windwos打包使用的ffmpeg exe执行程序
+ffmpeg/
+# YaoFANGUK的https://github.com/YaoFANGUK/video-subtitle-extractor/tree/main/backend
+docker/backend.tar
+# spleeter的分离人声需要在线下载的训练数据
+docker/pretrained_models.tar
+# linux amd64平台上需要使用的ffmepg可执行程序
+docker/ffmpeg.tar
