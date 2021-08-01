@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import QPushButton, QGridLayout, QDialog, QTabWidget
 
 from interface import ExtractSubtitleApi
 from custom_component import PaintRectLabel
-from extract_sound import get_extract_voice_progress
+from scripts import get_extract_voice_progress
 
 
 class SoftData:
@@ -52,10 +52,11 @@ class SoftData:
 
 
 class LoadVideoPicture(QThread):
-    def __init__(self, show_video_label, video_slider):
+    def __init__(self, show_video_label, video_slider, subtittle_result_label):
         super().__init__()
         self.show_video_label = show_video_label
         self.video_slider = video_slider
+        self.subtittle_result_label = subtittle_result_label
         self.busy = False
         self.value = None
 
@@ -102,7 +103,9 @@ class ExtractSubtitleThread(QThread):
         self.load_picture_thread = load_picture_thread
 
     def get_current_sub_tittle_base64_img(self):
-        image = cv2.imencode('.jpg', SoftData.Video.current_frame)[1]
+        rect_frame = SoftData.Video.current_frame[SoftData.Video.rect[1]:SoftData.Video.rect[3],
+                     SoftData.Video.rect[0]:SoftData.Video.rect[2]]
+        image = cv2.imencode('.jpg',rect_frame)[1]
         image_code = str(base64.b64encode(image))[2:-1]
         return image_code
 
@@ -129,6 +132,10 @@ class ExtractSubtitleThread(QThread):
             self.load_picture_thread.set_value(zheng)
             result = self.api_interface.text_recognition(self.get_current_sub_tittle_base64_img())
             self.log_signal.emit('{}'.format(result))
+            text = ';'.join([value[1] for value in result ])
+            time_point='{}-{}'.format(time.strftime("%H:%M:%S", time.gmtime(value[0]/100)),
+                                      time.strftime("%H:%M:%S", time.gmtime(value[1]/100)))
+            self.load_picture_thread.subtittle_result_label.setText('{}: {}'.format(time_point, text))
         else:
             self.progress_signal.emit(100)
             self.log_signal.emit('视频字幕提取成功')
@@ -151,7 +158,9 @@ class MainUi(QDialog):
         self.process.readyReadStandardError.connect(self.update_stderr)
         self.process.readyReadStandardOutput.connect(self.update_stdout)
         os.makedirs(os.path.join(current_dir, 'temp'), exist_ok=True)
-        self.show_video_label_thread = LoadVideoPicture(self.show_video_label, self.video_slider)
+        self.show_video_label_thread = LoadVideoPicture(self.show_video_label,
+                                                        self.video_slider,
+                                                        self.subtittle_result_label)
         self.extract_thread = ExtractSubtitleThread(self.show_video_label_thread)
         self.extract_thread.progress_signal.connect(self.update_progress_bar)
         self.extract_thread.log_signal.connect(self.add_log)
@@ -167,7 +176,11 @@ class MainUi(QDialog):
         self.video_slider.setMinimum(0)
         self.video_slider.setValue(0)
         self.video_slider.valueChanged.connect(self.show_video_by_count)
+        self.subtittle_result_label = QLineEdit()
+        self.subtittle_result_label.setEnabled(False)
+        self.subtittle_result_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.show_video_label)
+        layout.addWidget(self.subtittle_result_label)
         layout.addWidget(self.video_slider)
         video_widget_tab.setLayout(layout)
         return video_widget_tab, '视频演示'
