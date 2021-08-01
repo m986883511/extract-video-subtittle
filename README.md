@@ -21,7 +21,7 @@ CPU识别速度可观；
 
 ## 视频演示
 
-bilibili
+https://www.bilibili.com/video/BV18Q4y1f774/
 
 
 
