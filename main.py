@@ -1,3 +1,5 @@
+import datetime
+import json
 import os
 import time
 import sys
@@ -7,16 +9,60 @@ current_dir = os.path.dirname(__file__)
 sys.path.append(os.path.join(current_dir, 'ffmpeg'))
 
 import cv2
+import srt
 from PyQt5 import QtGui, QtWidgets
 from PyQt5.QtCore import *
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QTextEdit, QLabel, QFileDialog, QMessageBox
-from PyQt5.QtWidgets import QSlider, QVBoxLayout, QLineEdit, QWidget
+from PyQt5.QtWidgets import QSlider, QVBoxLayout, QLineEdit, QWidget, QHBoxLayout
 from PyQt5.QtWidgets import QPushButton, QGridLayout, QDialog, QTabWidget
 
 from interface import ExtractSubtitleApi
 from custom_component import PaintRectLabel
-from scripts import get_extract_voice_progress
+from scripts import get_extract_voice_progress, get_data_time
+
+
+class SaveResult:
+    def __init__(self):
+        self.result = {
+            'video': {},
+            'text': {
+                'sub_tittle': []
+            }
+        }
+
+    def get_data_time(self, str_time):
+        return datetime.timedelta(hours=int(str_time[0:2]), minutes=int(str_time[4:5]),
+                                  seconds=int(str_time[7:8]), milliseconds=int(str_time[9:11]))
+
+    def add_sub_tittle(self, start_time, end_time, text):
+        if text:
+            self.result['text']['sub_tittle'].append(
+                {'start_time': start_time, 'end_time': end_time, 'text': text})
+
+    def set_video_msg(self, video_path):
+        self.result['video_path'] = video_path
+
+    def save_json(self):
+        video_path = self.result.get('video_path', '')
+        video_name = ''.join(os.path.basename(video_path).split('.')[:-1])
+        if video_name:
+            save_path = os.path.join(current_dir, 'temp', video_name + '.json')
+            with open(save_path, 'w', encoding='utf-8') as f:
+                f.write(json.dumps(self.result, indent=4, ensure_ascii=False))
+        else:
+            print('not set video name')
+
+    def save_srt(self):
+        video_path = self.result.get('video_path', '')
+        video_name = ''.join(os.path.basename(video_path).split('.')[:-1])
+        save_path = os.path.join(current_dir, 'temp', video_name + '.srt')
+        sub_tittles = [
+            srt.Subtitle(i, start=get_data_time(i['start_time']), end=get_data_time(i['end_time']), content=i['text'])
+            for i in self.result['text']['sub_tittle']
+        ]
+        with open(save_path, 'w') as f:
+            f.write(srt.compose(sub_tittles))
 
 
 class SoftData:
@@ -105,11 +151,13 @@ class ExtractSubtitleThread(QThread):
     def get_current_sub_tittle_base64_img(self):
         rect_frame = SoftData.Video.current_frame[SoftData.Video.rect[1]:SoftData.Video.rect[3],
                      SoftData.Video.rect[0]:SoftData.Video.rect[2]]
-        image = cv2.imencode('.jpg',rect_frame)[1]
+        image = cv2.imencode('.jpg', rect_frame)[1]
         image_code = str(base64.b64encode(image))[2:-1]
         return image_code
 
     def run(self):
+        save_result = SaveResult()
+        save_result.set_video_msg(SoftData.Path.video)
         # 1、视频人声和背景声音分离
         self.log_signal.emit('开始提取人声结果，可能等待较长时间......')
         result = self.api_interface.extract_human_voice_from_sound(SoftData.Path.sound)
@@ -131,14 +179,23 @@ class ExtractSubtitleThread(QThread):
             zheng = int(time_zhong / (1000 / SoftData.Video.fps))
             self.load_picture_thread.set_value(zheng)
             result = self.api_interface.text_recognition(self.get_current_sub_tittle_base64_img())
+            self.log_signal.emit('{}'.format(value))
             self.log_signal.emit('{}'.format(result))
-            text = ';'.join([value[1] for value in result ])
-            time_point='{}-{}'.format(time.strftime("%H:%M:%S", time.gmtime(value[0]/100)),
-                                      time.strftime("%H:%M:%S", time.gmtime(value[1]/100)))
+            text = ';'.join([value[1] for value in result])
+            start_time = time.strftime("%H:%M:%S", time.gmtime(value[0] // 1000))
+            start_time = start_time + '.{}'.format(value[0] % 1000)
+            end_time = time.strftime("%H:%M:%S", time.gmtime(value[1] // 1000))
+            end_time = end_time + '.{}'.format(value[1] % 1000)
+            print(value, start_time, end_time)
+            time_point = '{}-{}'.format(start_time, end_time)
             self.load_picture_thread.subtittle_result_label.setText('{}: {}'.format(time_point, text))
+            text = '{}'.format(text)
+            save_result.add_sub_tittle(start_time, end_time, text)
         else:
             self.progress_signal.emit(100)
             self.log_signal.emit('视频字幕提取成功')
+            save_result.save_json()
+            save_result.save_srt()
 
 
 class MainUi(QDialog):
@@ -146,6 +203,7 @@ class MainUi(QDialog):
 
     def __init__(self):
         super().__init__()
+        self.setWindowTitle('视频硬字幕提取 https://github.com/m986883511/extract-video-subtittle')
         self.api_interface = ExtractSubtitleApi()
         self.init_ui()
         self.video_capture = None
@@ -195,15 +253,20 @@ class MainUi(QDialog):
 
     def get_thank_author_tab(self):
         thank_author_tab = QWidget()
-        layout = QVBoxLayout()
-        self.thank_author_label = QLabel('一张感谢作者的二维码转账图，哈哈哈')
+        layout = QHBoxLayout()
+        self.thank_author_label = QLabel('软件觉得不错，可以打赏')
+        self.thank_author_picture = QLabel()
+        picture = os.path.join(current_dir, 'image', 'weixin.jpg')
+        self.thank_author_picture.setScaledContents(True)
+        self.thank_author_picture.setPixmap(QPixmap(picture))
         layout.addWidget(self.thank_author_label)
+        layout.addWidget(self.thank_author_picture)
         thank_author_tab.setLayout(layout)
         return thank_author_tab, '感谢作者'
 
     def init_ui(self):
         self.setMinimumWidth(1000)
-        self.setMinimumHeight(618)
+        self.setMinimumHeight(800)
         layout = QVBoxLayout()
         self.video_path_button = QPushButton(SoftData.Button.select_video_path)
         self.video_path_button.clicked.connect(self.open_dialog_select_video_file)
