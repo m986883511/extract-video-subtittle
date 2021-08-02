@@ -80,7 +80,7 @@ docker run -d -p 6666:6666 m986883511/extract_subtitles
 
 后端接口容器地址[Docker Hub](https://hub.docker.com/repository/docker/m986883511/extract_subtitles)
 
-此过程可能时间较长，您需要预先安装好好docker，并配置好docker加速器
+此过程可能时间较长，您需要预先安装好好docker，并配置好docker加速器，你可能需要先docker login
 
 ```shell
 docker run -d -p 6666:6666 m986883511/extract_subtitles

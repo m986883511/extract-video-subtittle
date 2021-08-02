@@ -6,7 +6,7 @@ import sys
 import base64
 
 current_dir = os.path.dirname(__file__)
-sys.path.append(os.path.join(current_dir, 'ffmpeg'))
+os.environ['PATH'] += ';' + os.path.join(current_dir, 'ffmpeg')
 
 import cv2
 import srt
@@ -340,15 +340,16 @@ class MainUi(QDialog):
 
     def test_connect_api(self):
         self.add_log('开始测试api接口是否连通')
-        value = self.api_interface.detect_recognition_model()
-        if isinstance(value, dict) and value.get('result') == 'load model success':
-            msg = '文字识别API接口已连通:{}'.format(self.api_interface.base_url)
-            self.add_log(msg)
+        try:
+            value = self.api_interface.detect_recognition_model()
+            if isinstance(value, dict) and value.get('result') == 'load model success':
+                msg = '文字识别API接口已连通:{}'.format(self.api_interface.base_url)
+                self.add_log(msg)
+                self.connect_api_lineedit.setText(msg)
+        except Exception as e:
+            msg = '无法连接文字识别API接口，检查容器状态后重试'
+            self.add_log('{}, err={}'.format(msg, e))
             self.connect_api_lineedit.setText(msg)
-            return
-        msg = '无法连接文字识别API接口'
-        self.add_log(msg)
-        self.connect_api_lineedit.setText(msg)
 
     def update_progress_bar(self, progress):
         self.extract_progress.setValue(progress)

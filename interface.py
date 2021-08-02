@@ -1,5 +1,5 @@
+import json
 import os
-
 import requests
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
@@ -10,10 +10,21 @@ class ExtractSubtitleApi:
     debug = True
 
     def __init__(self):
-        self.ip = ExtractSubtitleApi.ip
-        self.port = ExtractSubtitleApi.port
+        self.set_ip_port()
         self.headers = {'content-type': 'application/json'}
         self.print_flag = True
+
+    def set_ip_port(self):
+        try:
+            with open(os.path.join(os.path.dirname(__file__), 'config.json')) as f:
+                content = f.read()
+            content = json.loads(content)
+            self.ip = content['ip']
+            self.port = content['port']
+        except Exception as e:
+            print('read config.json failed, err={}'.format(e))
+            self.ip = ExtractSubtitleApi.ip
+            self.port = ExtractSubtitleApi.port
 
     @property
     def base_url(self):
@@ -22,7 +33,7 @@ class ExtractSubtitleApi:
     def text_recognition(self, base64_img):
         url = '{}/text_recognition'.format(self.base_url)
         data = {"image": [base64_img]}
-        res = requests.post(url,  data=data)
+        res = requests.post(url, data=data)
         return self.deal_with_response(res)
 
     def extract_human_voice_from_sound(self, local_mp3_filepath):
@@ -43,6 +54,7 @@ class ExtractSubtitleApi:
         return self.deal_with_response(res)
 
     def detect_recognition_model(self):
+        self.set_ip_port()
         url = '{}/load_model'.format(self.base_url)
         response = requests.get(url, headers=self.headers)
         return self.deal_with_response(response)
