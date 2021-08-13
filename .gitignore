@@ -141,3 +141,10 @@ docker/backend.tar
 docker/pretrained_models.tar
 # linux amd64平台上需要使用的ffmepg可执行程序
 docker/ffmpeg.tar
+doc/build
+doc/.vscode
+doc/source/_build
+doc/source/_static
+doc/source/_templates
+
+
