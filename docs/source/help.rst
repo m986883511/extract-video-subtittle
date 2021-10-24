@@ -7,7 +7,7 @@
 
 >>> docker run -d -p 6666:6666 m986883511/extract_subtitles
 
-.. figure:: ../image/1-docker-run.png
+.. figure:: _static/image/1-docker-run.png
    :alt: 起容器
    :align: center
 
@@ -15,7 +15,7 @@
 启动程序
 :::::::::::::::::
 
-.. figure:: ../image/2-run-exe.png
+.. figure:: _static/image/2-run-exe.png
    :alt: 运行界面程序
    :align: center
 
@@ -27,7 +27,7 @@
 #. 当前视频帧显示的位置，就是视频进度条
 #. 识别出来的文字会在这里显示一下
 
-.. figure:: ../image/3-view.png
+.. figure:: _static/image/3-view.png
    :alt: 界面简介
    :align: center
 
@@ -38,7 +38,7 @@
 1. 点击选择视频按钮，这时你可以拖动进度条到有字幕的位置
 #. 然后点击选择字幕区域；在视频中画一个矩形
 
-.. figure:: ../image/4-rect.png
+.. figure:: _static/image/4-rect.png
    :alt: 选字幕区域
    :align: center
 
@@ -48,7 +48,7 @@
 
 后端没问题的话，会显示已连通；此时所有步骤准备就绪
 
-.. figure:: ../image/5-connect.png
+.. figure:: _static/image/5-connect.png
    :alt: 连接后端
    :align: center
 

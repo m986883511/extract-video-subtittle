@@ -18,7 +18,7 @@
 
 下图所示的显卡驱动cuda版本为10.2
 
-.. figure:: ../image/nvida-smi.png
+.. figure:: _static/image/nvida-smi.png
    :alt: 显卡驱动
    :align: center
 
